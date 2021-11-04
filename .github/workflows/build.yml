@@ -1,8 +1,6 @@
 name: build
 
-on:
-  push:
-    branches: [ master ]
+on: [ push, pull_request ]
 
 jobs:
   build-posix:
@@ -18,10 +16,11 @@ jobs:
           fetch-depth: 2
 
       - name: Build
-        run: make
+        run: ./build.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.os }}
-          path: mklfs
+          path: build/mklfs
+          if-no-files-found: error
