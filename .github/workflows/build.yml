@@ -29,3 +29,41 @@ jobs:
           name: ${{ matrix.os }}
           path: build/mklfs
           if-no-files-found: error
+
+  build-win32:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+          submodules: recursive
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          update: true
+          install: >-
+            git
+            make
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}
+          path: build/mklfs.exe
+          if-no-files-found: error
