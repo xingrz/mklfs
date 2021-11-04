@@ -43,7 +43,7 @@
  *
  */
 
-#include "lfs/lfs.h"
+#include "lfs.h"
 
 #include <ctype.h>
 #include <stdio.h>

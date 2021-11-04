@@ -4,10 +4,12 @@ project(mklfs)
 
 add_executable(
     ${PROJECT_NAME}
-    mklfs.c
+    src/mklfs.c
     lfs/lfs.c
     lfs/lfs_util.c
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE lfs)
 
 execute_process(COMMAND git describe --always OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 target_compile_options(${PROJECT_NAME} PRIVATE -DVERSION="${VERSION}")
