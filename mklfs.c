@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
     cfg.read_size   = read_size;
     cfg.prog_size   = prog_size;
     cfg.block_count = fs_size / cfg.block_size;
-    cfg.lookahead   = cfg.block_count;
+    cfg.lookahead_size = cfg.block_count / 8;
     cfg.context     = NULL;
 
 	data = calloc(1, fs_size);
