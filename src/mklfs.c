@@ -46,14 +46,14 @@
 #include "lfs.h"
 
 #include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <dirent.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 static struct lfs_config cfg;
 static lfs_t lfs;
@@ -65,7 +65,7 @@ static int lfs_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off
 }
 
 static int lfs_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
-	memcpy(data + (block * c->block_size) + off, buffer, size);
+    memcpy(data + (block * c->block_size) + off, buffer, size);
     return 0;
 }
 
@@ -75,7 +75,7 @@ static int lfs_erase(const struct lfs_config *c, lfs_block_t block) {
 }
 
 static int lfs_sync(const struct lfs_config *c) {
-	return 0;
+    return 0;
 }
 
 static void create_dir(char *src) {
@@ -86,11 +86,11 @@ static void create_dir(char *src) {
     if (path) {
         fprintf(stdout, "%s\r\n", path);
 
-		if ((ret = lfs_mkdir(&lfs, path)) < 0) {
-			fprintf(stderr,"can't create directory %s: error=%d\r\n", path, ret);
-			exit(1);
-		}
-	}
+        if ((ret = lfs_mkdir(&lfs, path)) < 0) {
+            fprintf(stderr, "can't create directory %s: error=%d\r\n", path, ret);
+            exit(1);
+        }
+    }
 }
 
 static void create_file(char *src) {
@@ -102,35 +102,35 @@ static void create_file(char *src) {
         fprintf(stdout, "%s\r\n", path);
 
         // Open source file
-        FILE *srcf = fopen(src,"rb");
+        FILE *srcf = fopen(src, "rb");
         if (!srcf) {
-            fprintf(stderr,"can't open source file %s: errno=%d (%s)\r\n", src, errno, strerror(errno));
+            fprintf(stderr, "can't open source file %s: errno=%d (%s)\r\n", src, errno, strerror(errno));
             exit(1);
         }
 
         // Open destination file
         lfs_file_t dstf;
         if ((ret = lfs_file_open(&lfs, &dstf, path, LFS_O_WRONLY | LFS_O_CREAT)) < 0) {
-            fprintf(stderr,"can't open destination file %s: error=%d\r\n", path, ret);
+            fprintf(stderr, "can't open destination file %s: error=%d\r\n", path, ret);
             exit(1);
         }
 
-		char c = fgetc(srcf);
-		while (!feof(srcf)) {
-			ret = lfs_file_write(&lfs, &dstf, &c, 1);
-			if (ret < 0) {
-				fprintf(stderr,"can't write to destination file %s: error=%d\r\n", path, ret);
-				exit(1);
-			}
-			c = fgetc(srcf);
-		}
+        char c = fgetc(srcf);
+        while (!feof(srcf)) {
+            ret = lfs_file_write(&lfs, &dstf, &c, 1);
+            if (ret < 0) {
+                fprintf(stderr, "can't write to destination file %s: error=%d\r\n", path, ret);
+                exit(1);
+            }
+            c = fgetc(srcf);
+        }
 
         // Close destination file
-		ret = lfs_file_close(&lfs, &dstf);
-		if (ret < 0) {
-			fprintf(stderr,"can't close destination file %s: error=%d\r\n", path, ret);
-			exit(1);
-		}
+        ret = lfs_file_close(&lfs, &dstf);
+        if (ret < 0) {
+            fprintf(stderr, "can't close destination file %s: error=%d\r\n", path, ret);
+            exit(1);
+        }
 
         // Close source file
         fclose(srcf);
@@ -146,7 +146,7 @@ static void compact(char *src) {
     if (dir) {
         while ((ent = readdir(dir))) {
             // Skip . and .. directories
-            if ((strcmp(ent->d_name,".") != 0) && (strcmp(ent->d_name,"..") != 0)) {
+            if ((strcmp(ent->d_name, ".") != 0) && (strcmp(ent->d_name, "..") != 0)) {
                 // Update the current path
                 strcpy(curr_path, src);
                 strcat(curr_path, "/");
@@ -166,51 +166,51 @@ static void compact(char *src) {
 }
 
 void usage() {
-	fprintf(stdout, "usage: mklfs -c <pack-dir> -b <block-size> -r <read-size> -p <prog-size> -s <filesystem-size> -i <image-file-path>\r\n");
+    fprintf(stdout, "usage: mklfs -c <pack-dir> -b <block-size> -r <read-size> -p <prog-size> -s <filesystem-size> -i <image-file-path>\r\n");
 }
 
 static int is_number(const char *s) {
-	const char *c = s;
+    const char *c = s;
 
-	while (*c) {
-		if ((*c < '0') || (*c > '9')) {
-			return 0;
-		}
-		c++;
-	}
+    while (*c) {
+        if ((*c < '0') || (*c > '9')) {
+            return 0;
+        }
+        c++;
+    }
 
-	return 1;
+    return 1;
 }
 
 static int is_hex(const char *s) {
-	const char *c = s;
+    const char *c = s;
 
-	if (*c++ != '0') {
-		return 0;
-	}
+    if (*c++ != '0') {
+        return 0;
+    }
 
-	if (*c++ != 'x') {
-		return 0;
-	}
+    if (*c++ != 'x') {
+        return 0;
+    }
 
-	while (*c) {
-		if (((*c < '0') || (*c > '9')) && ((*c < 'A') || (*c > 'F')) && ((*c < 'a') || (*c > 'f'))) {
-			return 0;
-		}
-		c++;
-	}
+    while (*c) {
+        if (((*c < '0') || (*c > '9')) && ((*c < 'A') || (*c > 'F')) && ((*c < 'a') || (*c > 'f'))) {
+            return 0;
+        }
+        c++;
+    }
 
-	return 1;
+    return 1;
 }
 
 static int to_int(const char *s) {
-	if (is_number(s)) {
-		return atoi(s);
-	} else if (is_hex(s)) {
-		return (int)strtol(s, NULL, 16);
-	}
+    if (is_number(s)) {
+        return atoi(s);
+    } else if (is_hex(s)) {
+        return (int)strtol(s, NULL, 16);
+    }
 
-	return -1;
+    return -1;
 }
 
 int main(int argc, char **argv) {
@@ -223,83 +223,83 @@ int main(int argc, char **argv) {
     int fs_size = 0;    // File system size
     int err;
 
-	while ((c = getopt(argc, argv, "c:i:b:p:r:s:")) != -1) {
-		switch (c) {
-		case 'c':
-			src = optarg;
-			break;
+    while ((c = getopt(argc, argv, "c:i:b:p:r:s:")) != -1) {
+        switch (c) {
+        case 'c':
+            src = optarg;
+            break;
 
-		case 'i':
-			dst = optarg;
-			break;
+        case 'i':
+            dst = optarg;
+            break;
 
-		case 'b':
-			block_size = to_int(optarg);
-			break;
+        case 'b':
+            block_size = to_int(optarg);
+            break;
 
-		case 'p':
-			prog_size = to_int(optarg);
-			break;
+        case 'p':
+            prog_size = to_int(optarg);
+            break;
 
-		case 'r':
-			read_size = to_int(optarg);
-			break;
+        case 'r':
+            read_size = to_int(optarg);
+            break;
 
-		case 's':
-			fs_size = to_int(optarg);
-			break;
-		}
-	}
+        case 's':
+            fs_size = to_int(optarg);
+            break;
+        }
+    }
 
     if ((src == NULL) || (dst == NULL) || (block_size <= 0) || (prog_size <= 0) ||
         (read_size <= 0) || (fs_size <= 0)) {
-    		usage();
+        usage();
         exit(1);
     }
 
     // Mount the file system
-    cfg.read  = lfs_read;
-    cfg.prog  = lfs_prog;
+    cfg.read = lfs_read;
+    cfg.prog = lfs_prog;
     cfg.erase = lfs_erase;
-    cfg.sync  = lfs_sync;
+    cfg.sync = lfs_sync;
 
-    cfg.block_size  = block_size;
-    cfg.read_size   = read_size;
-    cfg.prog_size   = prog_size;
+    cfg.block_size = block_size;
+    cfg.read_size = read_size;
+    cfg.prog_size = prog_size;
     cfg.block_count = fs_size / cfg.block_size;
     cfg.lookahead_size = cfg.block_count / 8;
-    cfg.context     = NULL;
+    cfg.context = NULL;
 
-	data = calloc(1, fs_size);
-	if (!data) {
-		fprintf(stderr, "no memory for mount\r\n");
-		return -1;
-	}
+    data = calloc(1, fs_size);
+    if (!data) {
+        fprintf(stderr, "no memory for mount\r\n");
+        return -1;
+    }
 
-	err = lfs_format(&lfs, &cfg);
-	if (err < 0) {
-		fprintf(stderr, "format error: error=%d\r\n", err);
-		return -1;
-	}
+    err = lfs_format(&lfs, &cfg);
+    if (err < 0) {
+        fprintf(stderr, "format error: error=%d\r\n", err);
+        return -1;
+    }
 
-	err = lfs_mount(&lfs, &cfg);
-	if (err < 0) {
-		fprintf(stderr, "mount error: error=%d\r\n", err);
-		return -1;
-	}
+    err = lfs_mount(&lfs, &cfg);
+    if (err < 0) {
+        fprintf(stderr, "mount error: error=%d\r\n", err);
+        return -1;
+    }
 
-	compact(src);
+    compact(src);
 
-	FILE *img = fopen(dst, "wb+");
+    FILE *img = fopen(dst, "wb+");
 
-	if (!img) {
-		fprintf(stderr, "can't create image file: errno=%d (%s)\r\n", errno, strerror(errno));
-		return -1;
-	}
+    if (!img) {
+        fprintf(stderr, "can't create image file: errno=%d (%s)\r\n", errno, strerror(errno));
+        return -1;
+    }
 
-	fwrite(data, 1, fs_size, img);
+    fwrite(data, 1, fs_size, img);
 
-	fclose(img);
+    fclose(img);
 
-	return 0;
+    return 0;
 }
