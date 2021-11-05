@@ -6,6 +6,26 @@ mklfs [![build](https://github.com/xingrz/mklfs/actions/workflows/build.yml/badg
 A tool for make a LFS file system image. Based on the original version from
 [Lua-RTOS-ESP32](https://github.com/whitecatboard/Lua-RTOS-ESP32/tree/master/components/mklfs).
 
+## Usage
+
+```
+$ mklfs -h
+Usage: mklfs [options] DIRECTORY IMAGE SIZE
+
+Create a littlefs IMAGE from DIRECTORY with SIZE allocated.
+
+Options:
+  -r, --read-size=SIZE          minimum size of a block read (default: 16)
+  -p, --prog-size=SIZE          minimum size of a block program (default: 16)
+  -b, --block-size=SIZE         size of block in bytes (default: 4096)
+  -c, --cache-size=SIZE         size of block caches in bytes (default: 64)
+  -L, --lookahead-size=SIZE     size of lookahead buffer in bytes (default: 32)
+
+Other options:
+  -h, --help                    print this help
+  -v, --version                 print program version
+```
+
 ## Build
 
 ```sh

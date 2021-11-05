@@ -48,12 +48,21 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <getopt.h>
+#include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define DEFAULT_READ_SIZE 16
+#define DEFAULT_PROG_SIZE 16
+#define DEFAULT_CACHE_SIZE 64
+#define DEFAULT_LOOKAHEAD_SIZE 32
+#define DEFAULT_BLOCK_SIZE 4096
+#define DEFAULT_BLOCK_CYCLES 512
 
 static struct lfs_config cfg;
 static lfs_t lfs;
@@ -165,10 +174,6 @@ static void compact(char *src) {
     }
 }
 
-void usage() {
-    fprintf(stdout, "usage: mklfs -c <pack-dir> -b <block-size> -r <read-size> -p <prog-size> -s <filesystem-size> -i <image-file-path>\r\n");
-}
-
 static int is_number(const char *s) {
     const char *c = s;
 
@@ -213,49 +218,122 @@ static int to_int(const char *s) {
     return -1;
 }
 
+static struct option long_options[] = {
+    {"read-size", required_argument, NULL, 'r'},
+    {"prog-size", required_argument, NULL, 'p'},
+    {"block-size", required_argument, NULL, 'b'},
+    {"cache-size", required_argument, NULL, 'c'},
+    {"lookahead-size", required_argument, NULL, 'L'},
+    {"help", no_argument, NULL, 'h'},
+    {"version", no_argument, NULL, 'v'},
+    {0, 0, NULL, 0},
+};
+
+static const char option_string[] = {
+    "r:"
+    "p:"
+    "b:"
+    "c:"
+    "L:"
+    "hv",
+};
+
+static void print_help(const char *prog) {
+    printf("Usage: %s [options] DIRECTORY IMAGE SIZE\n", basename((char *)prog));
+    printf("\n");
+    printf("Create a littlefs IMAGE from DIRECTORY with SIZE allocated.\n");
+    printf("\n");
+    printf("Options:\n");
+    printf("  -r, --read-size=SIZE          minimum size of a block read (default: %d)\n", DEFAULT_READ_SIZE);
+    printf("  -p, --prog-size=SIZE          minimum size of a block program (default: %d)\n", DEFAULT_PROG_SIZE);
+    printf("  -b, --block-size=SIZE         size of block in bytes (default: %d)\n", DEFAULT_BLOCK_SIZE);
+    printf("  -c, --cache-size=SIZE         size of block caches in bytes (default: %d)\n", DEFAULT_CACHE_SIZE);
+    printf("  -L, --lookahead-size=SIZE     size of lookahead buffer in bytes (default: %d)\n", DEFAULT_LOOKAHEAD_SIZE);
+    printf("\n");
+    printf("Other options:\n");
+    printf("  -h, --help                    print this help\n");
+    printf("  -v, --version                 print program version\n");
+}
+
+#ifndef GIT_TAG
+#define GIT_TAG "HEAD"
+#endif
+
+#ifndef GIT_COMMIT
+#define GIT_COMMIT "unknown"
+#endif
+
+static void print_version(void) {
+    printf("%s (%s)\n", GIT_TAG, GIT_COMMIT);
+    printf("LFS library : %d.%d\n", LFS_VERSION_MAJOR, LFS_VERSION_MINOR);
+    printf("LFS data    : %d.%d\n", LFS_DISK_VERSION_MAJOR, LFS_DISK_VERSION_MINOR);
+}
+
 int main(int argc, char **argv) {
-    char *src = NULL;   // Source directory
-    char *dst = NULL;   // Destination image
-    int c;              // Current option
-    int block_size = 0; // Block size
-    int read_size = 0;  // Read size
-    int prog_size = 0;  // Prog size
-    int fs_size = 0;    // File system size
+    char *src = NULL; // Source directory
+    char *dst = NULL; // Destination image
+    int read_size = DEFAULT_READ_SIZE;
+    int prog_size = DEFAULT_PROG_SIZE;
+    int block_size = DEFAULT_BLOCK_SIZE;
+    int cache_size = DEFAULT_CACHE_SIZE;
+    int lookahead_size = DEFAULT_LOOKAHEAD_SIZE;
+    int fs_size = 0;
     int err;
 
-    while ((c = getopt(argc, argv, "c:i:b:p:r:s:")) != -1) {
+    int long_index = -1;
+    while (1) {
+        int c = getopt_long(argc, argv, option_string, long_options, &long_index);
+        if (c == EOF)
+            break;
         switch (c) {
-        case 'c':
-            src = optarg;
-            break;
-
-        case 'i':
-            dst = optarg;
-            break;
-
-        case 'b':
-            block_size = to_int(optarg);
-            break;
-
-        case 'p':
-            prog_size = to_int(optarg);
-            break;
-
         case 'r':
             read_size = to_int(optarg);
             break;
-
+        case 'p':
+            prog_size = to_int(optarg);
+            break;
+        case 'b':
+            block_size = to_int(optarg);
+            break;
+        case 'c':
+            cache_size = to_int(optarg);
+            break;
+        case 'L':
+            lookahead_size = to_int(optarg);
+            break;
         case 's':
             fs_size = to_int(optarg);
             break;
+        case 'v':
+            print_version();
+            return 0;
+        case 'h':
+        case '?':
+            print_help(argv[0]);
+            return 0;
         }
     }
 
-    if ((src == NULL) || (dst == NULL) || (block_size <= 0) || (prog_size <= 0) ||
-        (read_size <= 0) || (fs_size <= 0)) {
-        usage();
-        exit(1);
+    if (optind + 3 != argc) {
+        print_help(argv[0]);
+        return -1;
     }
+
+    src = argv[optind];
+    dst = argv[optind + 1];
+    fs_size = to_int(argv[optind + 2]);
+
+    if (read_size <= 0 || prog_size <= 0 || block_size <= 0 || cache_size <= 0 ||
+        lookahead_size <= 0 || fs_size <= 0) {
+        print_help(argv[0]);
+        return -1;
+    }
+
+    printf("Making littlefs image...\n");
+    printf("  source: %s\n", src);
+    printf("  target: %s\n", dst);
+    printf("  size  : %d\n", fs_size);
+    printf("\n");
 
     // Mount the file system
     cfg.read = lfs_read;
@@ -263,11 +341,13 @@ int main(int argc, char **argv) {
     cfg.erase = lfs_erase;
     cfg.sync = lfs_sync;
 
-    cfg.block_size = block_size;
     cfg.read_size = read_size;
     cfg.prog_size = prog_size;
+    cfg.block_size = block_size;
     cfg.block_count = fs_size / cfg.block_size;
-    cfg.lookahead_size = cfg.block_count / 8;
+    cfg.block_cycles = -1; // disable leveling since we're making image locally
+    cfg.cache_size = cache_size;
+    cfg.lookahead_size = lookahead_size;
     cfg.context = NULL;
 
     data = calloc(1, fs_size);
