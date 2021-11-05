@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -149,6 +150,7 @@ static void create_file(char *src) {
 static void compact(char *src) {
     DIR *dir;
     struct dirent *ent;
+    struct stat s;
     char curr_path[PATH_MAX];
 
     dir = opendir(src);
@@ -161,10 +163,11 @@ static void compact(char *src) {
                 strcat(curr_path, "/");
                 strcat(curr_path, ent->d_name);
 
-                if (ent->d_type == DT_DIR) {
+                stat(curr_path, &s);
+                if (S_ISDIR(s.st_mode)) {
                     create_dir(curr_path);
                     compact(curr_path);
-                } else if (ent->d_type == DT_REG) {
+                } else if (S_ISREG(s.st_mode)) {
                     create_file(curr_path);
                 }
             }
