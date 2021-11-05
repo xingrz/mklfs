@@ -16,8 +16,12 @@ jobs:
           fetch-depth: 2
           submodules: recursive
 
+      - uses: ashutoshvarma/setup-ninja@master
+
       - name: Build
-        run: ./build.sh
+        run: |
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
